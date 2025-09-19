@@ -26,6 +26,10 @@ exports.getCategories = async (req, res) => {
   }
 };
 
+
+
+
+
 // CREATE category (multipart/form-data; field name: image)
 // optional parentId in body
 exports.createCategory = async (req, res) => {
@@ -63,27 +67,38 @@ exports.createCategory = async (req, res) => {
 exports.updateCategory = async (req, res) => {
   try {
     const { id } = req.params;
-    const { name } = req.body;
+    const category = await Category.findById(id);
+    if (!category) return res.status(404).json({ message: "Category not found" });
+
+    const { name, price, terms, visibleToUser, visibleToVendor } = req.body;
     const imageFile = req.file;
 
-    const category = await Category.findById(id);
-    if (!category)
-      return res.status(404).json({ message: "Category not found" });
-
-    // If changing name, ensure uniqueness in same parent
     if (name && name !== category.name) {
       const dup = await Category.findOne({ name, parent: category.parent });
-      if (dup)
-        return res
-          .status(400)
-          .json({ message: "Another category with that name exists here" });
+      if (dup) return res.status(400).json({ message: "Another category with that name exists here" });
       category.name = name;
     }
 
+    // ✅ Update price: handle "null"
+    if (price !== undefined) {
+      category.price = price === "null" ? null : Number(price);
+    }
+
+    // Update terms
+    if (terms !== undefined) {
+      category.terms = terms; // empty string clears text
+    }
+
+    // Update visibility
+    category.visibleToUser = visibleToUser === "true" || visibleToUser === true;
+    category.visibleToVendor = visibleToVendor === "true" || visibleToVendor === true;
+
+    // Update image
     if (imageFile) {
-      // delete old local file if present (starts with /uploads/)
       if (category.imageUrl && category.imageUrl.startsWith("/uploads/")) {
-        deleteLocalFile(category.imageUrl.slice(1));
+        const fs = require("fs");
+        const path = category.imageUrl.slice(1);
+        if (fs.existsSync(path)) fs.unlinkSync(path);
       }
       category.imageUrl = `/${imageFile.path.replace(/\\/g, "/")}`;
     }
@@ -95,6 +110,7 @@ exports.updateCategory = async (req, res) => {
     res.status(500).json({ message: "Server error" });
   }
 };
+
 
 // DELETE category + cascade delete subcategories recursively
 async function deleteCategoryAndDescendants(categoryId) {

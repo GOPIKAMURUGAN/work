@@ -1,10 +1,12 @@
-// server.js
 const express = require('express');
 const cors = require('cors');
 const connectDB = require('./config/db');
 const categoryRoutes = require('./routes/categoryRoutes');
 const path = require('path');
 const fs = require('fs');
+require('dotenv').config();
+const axios = require('axios');
+
 
 const app = express();
 connectDB();
@@ -20,6 +22,14 @@ if (!fs.existsSync(uploadsDir)) fs.mkdirSync(uploadsDir);
 app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')));
 
 app.use('/api/categories', categoryRoutes);
+const customerRoutes = require('./routes/customerRoutes');
+app.use('/api/customers', customerRoutes);
+
+
+const vendorRoutes = require('./routes/vendorRoutes'); // ✅ import
+app.use('/api/vendors', vendorRoutes); // ✅ mount
+
+
 
 // ✅ Global error handler (must be last)
 app.use((err, req, res, next) => {
