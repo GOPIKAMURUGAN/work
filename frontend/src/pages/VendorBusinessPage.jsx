@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
 import axios from "axios";
 
+
 // Modal for updating vendor price
 function UpdatePriceModal({ show, onClose, category, vendorId, onUpdated }) {
   const [price, setPrice] = useState(category?.vendorPrice ?? "");
@@ -35,14 +36,33 @@ function UpdatePriceModal({ show, onClose, category, vendorId, onUpdated }) {
   };
 
   return (
-    <div style={{
-      position: "fixed", top: 0, left: 0, right: 0, bottom: 0,
-      backgroundColor: "rgba(0,0,0,0.5)",
-      display: "flex", justifyContent: "center", alignItems: "center", zIndex: 1000
-    }}>
-      <div style={{ background: "#fff", padding: "20px", borderRadius: "10px", minWidth: "300px" }}>
+    <div
+      style={{
+        position: "fixed",
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        backgroundColor: "rgba(0,0,0,0.5)",
+        display: "flex",
+        justifyContent: "center",
+        alignItems: "center",
+        zIndex: 1000,
+      }}
+    >
+      <div
+        style={{
+          background: "#fff",
+          padding: "20px",
+          borderRadius: "10px",
+          minWidth: "300px",
+        }}
+      >
         <h3>Update Price: {category.name}</h3>
-        <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+        <form
+          onSubmit={handleSubmit}
+          style={{ display: "flex", flexDirection: "column", gap: "10px" }}
+        >
           <input
             type="number"
             step="0.01"
@@ -50,11 +70,43 @@ function UpdatePriceModal({ show, onClose, category, vendorId, onUpdated }) {
             onChange={(e) => setPrice(e.target.value)}
             placeholder="Vendor Price"
             required
-            style={{ padding: "8px", borderRadius: "6px", border: "1px solid #ccc" }}
+            style={{
+              padding: "8px",
+              borderRadius: "6px",
+              border: "1px solid #ccc",
+            }}
           />
-          <div style={{ display: "flex", gap: "10px", justifyContent: "flex-end" }}>
-            <button type="button" onClick={onClose} style={{ padding: "8px 16px", borderRadius: "6px", background: "#ccc", border: "none" }}>Cancel</button>
-            <button type="submit" style={{ padding: "8px 16px", borderRadius: "6px", background: "#00AEEF", border: "none", color: "#fff" }}>Update</button>
+          <div
+            style={{
+              display: "flex",
+              gap: "10px",
+              justifyContent: "flex-end",
+            }}
+          >
+            <button
+              type="button"
+              onClick={onClose}
+              style={{
+                padding: "8px 16px",
+                borderRadius: "6px",
+                background: "#ccc",
+                border: "none",
+              }}
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              style={{
+                padding: "8px 16px",
+                borderRadius: "6px",
+                background: "#00AEEF",
+                border: "none",
+                color: "#fff",
+              }}
+            >
+              Update
+            </button>
           </div>
         </form>
       </div>
@@ -92,7 +144,9 @@ export default function VendorBusinessPage() {
   const fetchTree = async () => {
     try {
       setLoading(true);
-      const res = await axios.get(`http://localhost:5000/api/vendors/${vendorId}/categories`);
+      const res = await axios.get(
+        `http://localhost:5000/api/vendors/${vendorId}/categories`
+      );
       setVendor(res.data.vendor);
 
       const rootCategory = res.data.categories;
@@ -116,7 +170,10 @@ export default function VendorBusinessPage() {
   const rows = tree.flatMap((root) => flattenTree(root));
 
   // Determine max levels dynamically
-  const maxLevels = rows.reduce((max, row) => Math.max(max, row.levels.length), 0);
+  const maxLevels = rows.reduce(
+    (max, row) => Math.max(max, row.levels.length),
+    0
+  );
   const levelHeaders = Array.from({ length: maxLevels }, (_, idx) =>
     idx === 0 ? "Category" : `Level ${idx + 1}`
   );
@@ -124,12 +181,47 @@ export default function VendorBusinessPage() {
   return (
     <div>
       <h1>{vendor?.businessName || "Vendor Business Categories"}</h1>
+      
       {vendor && (
         <p>
           <b>Vendor Name:</b> {vendor.contactName} <br />
           <b>Phone:</b> {vendor.phone}
         </p>
       )}
+
+      {/* 🔹 Preview button at top-right */}
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "flex-end",
+          marginBottom: "10px",
+        }}
+      >
+        {/* Preview button */}
+        <button
+          onClick={() => {
+            if (!vendorId || !rows[0]?.categoryId) {
+              alert("No category found to preview");
+              return;
+            }
+            // Use path params to match Next.js dynamic route
+            window.open(
+              `http://localhost:3000/preview/${vendorId}/${rows[0].categoryId}`,
+              "_blank"
+            );
+          }}
+          style={{
+            padding: "6px 12px",
+            borderRadius: "6px",
+            background: "green",
+            color: "#fff",
+            border: "none",
+            cursor: "pointer",
+          }}
+        >
+          Preview
+        </button>
+      </div>
 
       {loading ? (
         <p>Loading...</p>
@@ -140,17 +232,29 @@ export default function VendorBusinessPage() {
           <thead>
             <tr>
               {levelHeaders.map((header, idx) => (
-                <th key={idx} style={{ border: "1px solid #ccc", padding: "8px" }}>{header}</th>
+                <th
+                  key={idx}
+                  style={{ border: "1px solid #ccc", padding: "8px" }}
+                >
+                  {header}
+                </th>
               ))}
-              <th style={{ border: "1px solid #ccc", padding: "8px" }}>Price</th>
-              <th style={{ border: "1px solid #ccc", padding: "8px" }}>Action</th>
+              <th style={{ border: "1px solid #ccc", padding: "8px" }}>
+                Price
+              </th>
+              <th style={{ border: "1px solid #ccc", padding: "8px" }}>
+                Action
+              </th>
             </tr>
           </thead>
           <tbody>
             {rows.map((row) => (
               <tr key={row.id}>
                 {levelHeaders.map((_, idx) => (
-                  <td key={idx} style={{ border: "1px solid #ccc", padding: "8px" }}>
+                  <td
+                    key={idx}
+                    style={{ border: "1px solid #ccc", padding: "8px" }}
+                  >
                     {row.levels[idx] ?? "-"}
                   </td>
                 ))}
@@ -161,10 +265,16 @@ export default function VendorBusinessPage() {
                       setModalCategory({
                         id: row.categoryId,
                         name: row.levels[row.levels.length - 1],
-                        vendorPrice: row.price
+                        vendorPrice: row.price,
                       })
                     }
-                    style={{ padding: "4px 8px", borderRadius: "4px", background: "#00AEEF", color: "#fff", border: "none" }}
+                    style={{
+                      padding: "4px 8px",
+                      borderRadius: "4px",
+                      background: "#00AEEF",
+                      color: "#fff",
+                      border: "none",
+                    }}
                   >
                     Edit
                   </button>

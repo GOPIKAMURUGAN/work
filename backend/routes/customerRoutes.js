@@ -1,4 +1,4 @@
-// routes/customerRoutes.js
+
 const express = require("express");
 const axios = require("axios");
 const Customer = require("../models/Customer");
