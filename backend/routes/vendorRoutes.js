@@ -79,6 +79,75 @@ router.get("/", async (req, res) => {
 });
 
 /**
+ * Category-level vendor counts (total and by status)
+ * GET /api/vendors/categories/counts
+ * Optional: ?categoryId=<id>
+ */
+router.get("/categories/counts", async (req, res) => {
+  try {
+    const { categoryId } = req.query;
+    const match = {};
+    if (categoryId) match.categoryId = new mongoose.Types.ObjectId(categoryId);
+
+    const totalAgg = await Vendor.aggregate([
+      { $match: match },
+      { $group: { _id: "$categoryId", total: { $sum: 1 } } },
+    ]);
+
+    const statusAgg = await Vendor.aggregate([
+      { $match: match },
+      { $group: { _id: { categoryId: "$categoryId", status: "$status" }, count: { $sum: 1 } } },
+    ]);
+
+    const totals = new Map(totalAgg.map((d) => [String(d._id), d.total]));
+    const statusMap = new Map();
+    statusAgg.forEach((d) => {
+      const catId = String(d._id.categoryId);
+      const st = d._id.status || "Waiting for Approval";
+      if (!statusMap.has(catId)) statusMap.set(catId, {});
+      statusMap.get(catId)[st] = d.count;
+    });
+
+    const cats = await Category.find(categoryId ? { _id: categoryId } : { parent: null }).lean();
+    const result = cats.map((c) => ({
+      categoryId: c._id,
+      name: c.name,
+      imageUrl: c.imageUrl,
+      totalVendors: totals.get(String(c._id)) || 0,
+      statusCounts: statusMap.get(String(c._id)) || {},
+    }));
+
+    res.json(result);
+  } catch (err) {
+    console.error("GET /vendors/categories/counts error:", err);
+    res.status(500).json({ message: "Server error" });
+  }
+});
+
+/**
+ * Vendors by category and status
+ * GET /api/vendors/byCategory/:categoryId?status=Accepted
+ */
+router.get("/byCategory/:categoryId", async (req, res) => {
+  try {
+    const { categoryId } = req.params;
+    const { status } = req.query;
+    const match = { categoryId };
+    if (status) match.status = status;
+
+    const vendors = await Vendor.find(match)
+      .populate("customerId", "fullNumber phone")
+      .populate("categoryId", "name price")
+      .lean();
+
+    res.json(vendors);
+  } catch (err) {
+    console.error("GET /vendors/byCategory error:", err);
+    res.status(500).json({ message: "Server error" });
+  }
+});
+
+/**
  * GET single vendor
  */
 router.get("/:id", async (req, res) => {

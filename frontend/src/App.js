@@ -5,6 +5,8 @@ import Master from "./pages/Master";
 import MasterDetail from "./pages/MasterDetail";
 import Questions from "./pages/Questions";
 import Vendors from "./pages/VendorPage";
+import VendorStatusPage from "./pages/VendorStatusPage";
+import VendorStatusListPage from "./pages/VendorStatusListPage";
 import CategoryPage from "./components/CategoryPage";
 import CustomersPage from "./pages/CustomersPage";
 
@@ -26,6 +28,8 @@ function App() {
             <Route path="/master/:parentId" element={<MasterDetail />} />
             <Route path="/questions" element={<Questions />} />
             <Route path="/vendors" element={<Vendors />} />
+            <Route path="/vendors/status/:categoryId" element={<VendorStatusPage />} />
+            <Route path="/vendors/status/:categoryId/:status" element={<VendorStatusListPage />} />
             <Route
               path="/vendors/:vendorId"
               element={<VendorBusinessPage />}

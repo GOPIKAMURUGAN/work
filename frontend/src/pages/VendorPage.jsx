@@ -3,34 +3,36 @@ import axios from "axios";
 import { useNavigate } from "react-router-dom";
 
 function VendorPage() {
-  const [vendors, setVendors] = useState([]);
+  const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
-  const fetchVendors = async () => {
+  const fetchCategories = async () => {
     try {
       setLoading(true);
-      const res = await axios.get("http://localhost:5000/api/vendors");
-      setVendors(res.data);
+      const res = await axios.get(
+        "http://localhost:5000/api/vendors/categories/counts"
+      );
+      setCategories(res.data);
     } catch (err) {
       console.error(err);
-      alert("Failed to load vendors");
+      alert("Failed to load categories");
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    fetchVendors();
+    fetchCategories();
   }, []);
 
   return (
     <div>
-      <h1>Vendors</h1>
+      <h1>Categories</h1>
       {loading ? (
         <div>Loading...</div>
-      ) : vendors.length === 0 ? (
-        <div>No activated vendors yet</div>
+      ) : categories.length === 0 ? (
+        <div>No categories found</div>
       ) : (
         <div
           style={{
@@ -39,35 +41,33 @@ function VendorPage() {
             gap: 16,
           }}
         >
-          {vendors.map((v) => (
+          {categories.map((c) => (
             <div
-              key={v._id} // ✅ use _id
+              key={c.categoryId}
+              onClick={() => navigate(`/vendors/status/${c.categoryId}`)}
               style={{
                 border: "1px solid #ccc",
                 borderRadius: 8,
                 padding: 12,
                 boxShadow: "0 2px 4px rgba(0,0,0,0.1)",
+                cursor: "pointer",
               }}
             >
-              <h3>{v.businessName}</h3>
-              <p>
-                Mobile No: {v.customerId?.fullNumber || v.phone || "N/A"} <br />
-                Contact Name: {v.contactName || "N/A"} <br />
-                Category: {v.categoryId?.name || "N/A"}
-              </p>
-              <button
-                onClick={() => navigate(`/vendors/${v._id}`)} // ✅ navigate using _id
+              <img
+                src={c.imageUrl ? `http://localhost:5000${c.imageUrl}` : ""}
+                alt={c.name}
                 style={{
-                  padding: "6px 12px",
+                  width: "100%",
+                  height: 140,
+                  objectFit: "cover",
                   borderRadius: 6,
-                  border: "none",
-                  background: "#00AEEF",
-                  color: "#fff",
-                  cursor: "pointer",
+                  background: "#f3f3f3",
                 }}
-              >
-                View Business
-              </button>
+              />
+              <h3 style={{ marginTop: 10 }}>{c.name}</h3>
+              <div style={{ marginTop: 8, fontWeight: "bold" }}>
+                Vendors Count: {c.totalVendors || 0}
+              </div>
             </div>
           ))}
         </div>

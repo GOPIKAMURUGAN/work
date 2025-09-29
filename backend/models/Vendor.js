@@ -6,6 +6,18 @@ const vendorSchema = new mongoose.Schema({
   businessName: { type: String, required: true },
   contactName: { type: String, required: true },
   categoryId: { type: mongoose.Schema.Types.ObjectId, ref: "Category", required: true },
+  status: {
+    type: String,
+    enum: [
+      "Accepted",
+      "Pending",
+      "Rejected",
+      "Waiting for Approval",
+      "Inactive",
+      "Active",
+    ],
+    default: "Waiting for Approval",
+  },
   createdAt: { type: Date, default: Date.now },
 });
 
