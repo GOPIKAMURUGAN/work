@@ -181,12 +181,36 @@ export default function VendorBusinessPage() {
   return (
     <div>
       <h1>{vendor?.businessName || "Vendor Business Categories"}</h1>
+      {/* Category hero image and name if available */}
+      {tree && tree[0] && (
+        <div style={{ display: "flex", gap: "16px", alignItems: "center", marginBottom: "12px" }}>
+          {tree[0].imageUrl && (
+            <img
+              src={`http://localhost:5000${tree[0].imageUrl}`}
+              alt={tree[0].name}
+              style={{ width: 120, height: 80, objectFit: "cover", borderRadius: 8, background: "#f3f3f3" }}
+            />
+          )}
+          <div>
+            <p style={{ margin: 0 }}><b>Category:</b> {tree[0].name}</p>
+          </div>
+        </div>
+      )}
       
       {vendor && (
-        <p>
-          <b>Vendor Name:</b> {vendor.contactName} <br />
-          <b>Phone:</b> {vendor.phone}
-        </p>
+        <div style={{ marginBottom: "12px" }}>
+          <p style={{ margin: 0 }}>
+            <b>Vendor Name:</b> {vendor.contactName}
+          </p>
+          <p style={{ margin: 0 }}>
+            <b>Phone:</b> {vendor.phone}
+          </p>
+          {vendor.businessName && (
+            <p style={{ margin: 0 }}>
+              <b>Business:</b> {vendor.businessName}
+            </p>
+          )}
+        </div>
       )}
 
       {/* 🔹 Preview button at top-right */}
@@ -243,6 +267,9 @@ export default function VendorBusinessPage() {
                 Price
               </th>
               <th style={{ border: "1px solid #ccc", padding: "8px" }}>
+                Image
+              </th>
+              <th style={{ border: "1px solid #ccc", padding: "8px" }}>
                 Action
               </th>
             </tr>
@@ -259,6 +286,19 @@ export default function VendorBusinessPage() {
                   </td>
                 ))}
                 <td>{row.price}</td>
+                <td>
+                  {/* Attempt to show image for this category level if present by finding the node in the tree */}
+                  {/* Since rows are flattened, we only have the final level categoryId; show root image as fallback */}
+                  {tree && tree[0] && tree[0].imageUrl ? (
+                    <img
+                      src={`http://localhost:5000${tree[0].imageUrl}`}
+                      alt={tree[0].name}
+                      style={{ width: 60, height: 40, objectFit: "cover", borderRadius: 4, background: "#f3f3f3" }}
+                    />
+                  ) : (
+                    <span>-</span>
+                  )}
+                </td>
                 <td>
                   <button
                     onClick={() =>

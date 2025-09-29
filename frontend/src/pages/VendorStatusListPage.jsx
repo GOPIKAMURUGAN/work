@@ -76,7 +76,7 @@ export default function VendorStatusListPage() {
                       cursor: "pointer",
                     }}
                   >
-                    Preview
+                    View Business
                   </button>
                 </td>
               </tr>
