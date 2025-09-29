@@ -2,6 +2,7 @@ import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import Sidebar from "./components/Sidebar";
 import Dashboard from "./pages/Dashboard";
 import Master from "./pages/Master";
+import MasterDetail from "./pages/MasterDetail";
 import Questions from "./pages/Questions";
 import Vendors from "./pages/VendorPage";
 import CategoryPage from "./components/CategoryPage";
@@ -22,6 +23,7 @@ function App() {
             {/* Other pages */}
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/master" element={<Master />} />
+            <Route path="/master/:parentId" element={<MasterDetail />} />
             <Route path="/questions" element={<Questions />} />
             <Route path="/vendors" element={<Vendors />} />
             <Route

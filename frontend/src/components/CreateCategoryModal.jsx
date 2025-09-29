@@ -13,6 +13,7 @@ function CreateCategoryModal({
   const [terms, setTerms] = useState("");
   const [visibleToUser, setVisibleToUser] = useState(false);
   const [visibleToVendor, setVisibleToVendor] = useState(false);
+  const [sequence, setSequence] = useState(0);
 
   useEffect(() => {
     if (initialData) {
@@ -22,6 +23,7 @@ function CreateCategoryModal({
       setTerms(initialData.terms ?? "");
       setVisibleToUser(initialData.visibleToUser || false);
       setVisibleToVendor(initialData.visibleToVendor || false);
+      setSequence(initialData.sequence ?? 0);
     } else {
       setName("");
       setImage(null);
@@ -29,6 +31,7 @@ function CreateCategoryModal({
       setTerms("");
       setVisibleToUser(false);
       setVisibleToVendor(false);
+      setSequence(0);
     }
   }, [initialData, show]);
 
@@ -47,6 +50,7 @@ function CreateCategoryModal({
       if (image) formData.append("image", image);
       if (parentId) formData.append("parentId", parentId);
       formData.append("price", price === "" ? "" : price);
+      formData.append("sequence", sequence); // only once
       formData.append("terms", terms);
       formData.append("visibleToUser", visibleToUser);
       formData.append("visibleToVendor", visibleToVendor);
@@ -64,12 +68,14 @@ function CreateCategoryModal({
         throw new Error(errData.message || "Failed to save category");
       }
 
+      // reset form
       setName("");
       setImage(null);
       setPrice("");
       setTerms("");
       setVisibleToUser(false);
       setVisibleToVendor(false);
+      setSequence(0);
 
       onCreated?.();
       onClose?.();
@@ -123,6 +129,23 @@ function CreateCategoryModal({
             alignItems: "center",
           }}
         >
+          <input
+            type="number"
+            placeholder="Sequence (Order)"
+            value={sequence}
+            onChange={(e) =>
+              setSequence(e.target.value === "" ? 0 : Number(e.target.value))
+            }
+            style={{
+              padding: "10px",
+              width: "100%",
+              borderRadius: "8px",
+              border: "1px solid #ccc",
+              background: "#fff",
+              color: "#000",
+            }}
+          />
+
           <input
             type="text"
             placeholder="Enter Name"

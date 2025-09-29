@@ -21,7 +21,8 @@ async function buildVendorPreviewTree(categoryId, vendorId) {
   const price = priceDoc?.price ?? category.price;
 
   // Find children categories recursively
-  const childrenCats = await Category.find({ parent: categoryId }).lean();
+    // Find children categories recursively
+  const childrenCats = await Category.find({ parent: categoryId }).sort({ sequence: 1, createdAt: -1 }).lean();
   const children = [];
   for (const child of childrenCats) {
     const childTree = await buildVendorPreviewTree(child._id, vendorId);
@@ -117,13 +118,14 @@ router.get("/:vendorId/categories", async (req, res) => {
     });
 
     // Recursive function to build full category tree
+        // Recursive function to build full category tree
     async function buildCategoryTree(catId) {
       const category = await Category.findById(catId).lean();
       if (!category) return null;
 
       const price = vendorPricingMap[category._id.toString()] ?? category.price;
 
-      const childrenDocs = await Category.find({ parent: catId }).lean();
+      const childrenDocs = await Category.find({ parent: catId }).sort({ sequence: 1, createdAt: -1 }).lean();
       const children = await Promise.all(childrenDocs.map((child) => buildCategoryTree(child._id)));
 
       return {
@@ -220,6 +222,44 @@ router.put("/:vendorId/prices", async (req, res) => {
   }
 });
 
+
+/**
+ * CREATE vendor
+ */
+router.post("/", async (req, res) => {
+  try {
+    const { customerId, phone, businessName, contactName, categoryId } = req.body;
+
+    if (!customerId || !phone || !businessName || !contactName || !categoryId) {
+      return res.status(400).json({ message: "All fields are required" });
+    }
+
+    // make sure customer exists
+    const customer = await Customer.findById(customerId).lean();
+    if (!customer) return res.status(404).json({ message: "Customer not found" });
+
+    // make sure category exists
+    const category = await Category.findById(categoryId).lean();
+    if (!category) return res.status(404).json({ message: "Category not found" });
+
+    const vendor = new Vendor({
+      customerId,
+      phone,
+      businessName,
+      contactName,
+      categoryId,
+    });
+
+    await vendor.save();
+
+    res.status(201).json(vendor);
+  } catch (err) {
+    console.error("Error creating vendor:", err);
+    res.status(500).json({ message: "Failed to create vendor" });
+  }
+});
+
+
 /**
  * GET vendor preview
  */
@@ -255,13 +295,13 @@ router.get("/:vendorId/preview/:categoryId", async (req, res) => {
     const root = await findRoot(categoryId);
 
     // Recursive function to build tree
-    async function buildTree(catId) {
+        async function buildTree(catId) {
       const cat = await Category.findById(catId).lean();
       if (!cat) return null;
 
       const price = vendorPricingMap[cat._id.toString()] ?? cat.price;
 
-      const childrenDocs = await Category.find({ parent: catId }).lean();
+      const childrenDocs = await Category.find({ parent: catId }).sort({ sequence: 1, createdAt: -1 }).lean();
       const children = await Promise.all(childrenDocs.map(c => buildTree(c._id)));
 
       return {

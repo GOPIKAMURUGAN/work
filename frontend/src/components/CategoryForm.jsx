@@ -8,6 +8,7 @@ function CategoryForm({ onSubmit }) {
     visibleToUser: false,
     visibleToVendor: false,
     image: null,
+    sequence: 0,
   });
 
   const handleChange = (e) => {
@@ -33,6 +34,11 @@ function CategoryForm({ onSubmit }) {
       <div>
         <label>Price (Optional)</label>
         <input type="number" name="price" onChange={handleChange} />
+      </div>
+
+            <div>
+        <label>Sequence (Order)</label>
+        <input type="number" name="sequence" onChange={handleChange} defaultValue={0} />
       </div>
 
       <div>
