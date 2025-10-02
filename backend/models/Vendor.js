@@ -18,6 +18,12 @@ const vendorSchema = new mongoose.Schema({
     ],
     default: "Waiting for Approval",
   },
+
+  location: {
+    lat: { type: Number },
+    lng: { type: Number },
+    address: { type: String }
+  },
   createdAt: { type: Date, default: Date.now },
 });
 

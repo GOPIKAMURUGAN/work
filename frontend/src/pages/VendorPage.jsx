@@ -13,7 +13,7 @@ function VendorPage() {
       const res = await axios.get(
         "http://localhost:5000/api/vendors/categories/counts"
       );
-      setCategories(res.data);
+      setCategories(res.data || []);
     } catch (err) {
       console.error(err);
       alert("Failed to load categories");
@@ -28,7 +28,7 @@ function VendorPage() {
 
   return (
     <div>
-      <h1>Categories</h1>
+      <h1>Vendors</h1>
       {loading ? (
         <div>Loading...</div>
       ) : categories.length === 0 ? (
@@ -44,7 +44,9 @@ function VendorPage() {
           {categories.map((c) => (
             <div
               key={c.categoryId}
-              onClick={() => navigate(`/vendors/status/${c.categoryId}`)}
+              onClick={() =>
+                navigate(`/vendors/status/${c.categoryId}`)
+              }
               style={{
                 border: "1px solid #ccc",
                 borderRadius: 8,

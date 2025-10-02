@@ -4,7 +4,7 @@ import ProductsMenu from "./ProductsMenu";
 export default function TopNavBar({ businessName, categoryTree, selectedLeaf, onLeafSelect, onProductsClick }) {
   const [open, setOpen] = useState(false);
 
-  const navItems = [ "Benefits", "About", "Contact"];
+  const navItems = ["Benefits", "About", "Contact"];
 
   return (
     <header
@@ -31,28 +31,28 @@ export default function TopNavBar({ businessName, categoryTree, selectedLeaf, on
           {/* Home */}
           <li key="Home">
             <a
-              href="#home"
+              onClick={(e) => {
+                e.preventDefault();
+                const el = document.getElementById("home");
+                if (el) el.scrollIntoView({ behavior: "smooth" });
+              }}
               style={{
                 color: "#333333",
                 textDecoration: "none",
                 fontWeight: 500,
                 fontSize: "16px",
                 transition: "color 0.2s",
+                cursor: "pointer",
               }}
-              onMouseOver={(e) => (e.currentTarget.style.color = "#059669")}
-              onMouseOut={(e) => (e.currentTarget.style.color = "#333333")}
             >
               Home
             </a>
           </li>
 
-          {/* Products Dropdown (second item) */}
+          {/* Products Dropdown */}
           <li style={{ position: "relative" }} key="Products">
             <button
-              onClick={() => {
-                setOpen(!open);
-                onProductsClick?.();
-              }}
+              onClick={() => setOpen(!open)} // toggle dropdown
               style={{
                 background: "transparent",
                 border: "none",
@@ -66,6 +66,7 @@ export default function TopNavBar({ businessName, categoryTree, selectedLeaf, on
 
             {open && categoryTree && (
               <div
+                onClick={(e) => e.stopPropagation()}
                 style={{
                   position: "absolute",
                   top: "100%",
@@ -84,7 +85,9 @@ export default function TopNavBar({ businessName, categoryTree, selectedLeaf, on
                   selectedLeaf={selectedLeaf}
                   onLeafSelect={(leaf) => {
                     onLeafSelect(leaf);
-                    setOpen(false);
+                    setOpen(false); // close after selection
+                    const el = document.getElementById("products");
+                    if (el) el.scrollIntoView({ behavior: "smooth" });
                   }}
                 />
               </div>

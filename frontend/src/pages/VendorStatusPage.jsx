@@ -7,8 +7,7 @@ const STATUSES = [
   "Pending",
   "Rejected",
   "Waiting for Approval",
-  "Inactive",
-  "Active",
+  "Registered",
 ];
 
 export default function VendorStatusPage() {
@@ -39,7 +38,6 @@ export default function VendorStatusPage() {
 
   useEffect(() => {
     fetchData();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [categoryId]);
 
   return (
@@ -58,7 +56,11 @@ export default function VendorStatusPage() {
           {STATUSES.map((st) => (
             <div
               key={st}
-              onClick={() => navigate(`/vendors/status/${categoryId}/${encodeURIComponent(st)}`)}
+              onClick={() =>
+                navigate(
+                  `/vendors/status/${categoryId}/${encodeURIComponent(st)}`
+                )
+              }
               style={{
                 border: "1px solid #ccc",
                 borderRadius: 8,
@@ -68,7 +70,9 @@ export default function VendorStatusPage() {
               }}
             >
               <h3 style={{ margin: 0 }}>{st}</h3>
-              <div style={{ marginTop: 8, fontWeight: "bold" }}>{counts[st] || 0}</div>
+              <div style={{ marginTop: 8, fontWeight: "bold" }}>
+                {counts[st] || 0}
+              </div>
             </div>
           ))}
         </div>
@@ -76,6 +80,3 @@ export default function VendorStatusPage() {
     </div>
   );
 }
-
-
-

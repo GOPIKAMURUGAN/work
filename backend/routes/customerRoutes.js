@@ -1,4 +1,3 @@
-
 const express = require("express");
 const axios = require("axios");
 const Customer = require("../models/Customer");
@@ -14,8 +13,18 @@ if (!MSG91_SENDER) console.warn("MSG91_SENDER not set in .env");
 // helper to build full number
 const buildFull = (countryCode, phone) => `${countryCode}${phone.replace(/\D/g, "")}`;
 
-// 1) Request OTP via MSG91 v5 API
+// helper: log duration
+function logApi(req, res, label) {
+  const start = Date.now();
+  res.on("finish", () => {
+    const duration = Date.now() - start;
+    console.log(`[API] ${req.method} ${req.originalUrl} - ${res.statusCode} - ${duration}ms ${label || ""}`);
+  });
+}
+
+/* ---------------- 1) Request OTP ---------------- */
 router.post("/request-otp", async (req, res) => {
+  logApi(req, res, "request-otp");
   try {
     const { countryCode, phone } = req.body;
     if (!countryCode || !phone) {
@@ -29,8 +38,8 @@ router.post("/request-otp", async (req, res) => {
       {
         mobile,
         otp_length: 6,
-        sender: MSG91_SENDER, // ✅ use approved sender
-        template_id: "63e1e445d6fc0560d933a5e2", // ✅ use your template ID
+        sender: MSG91_SENDER,
+        template_id: "63e1e445d6fc0560d933a5e2", // replace with your template id
       },
       {
         headers: { authkey: MSG91_AUTH, "Content-Type": "application/json" },
@@ -52,8 +61,9 @@ router.post("/request-otp", async (req, res) => {
   }
 });
 
-// 2) Verify OTP via MSG91 v5 API and create customer if verified
+/* ---------------- 2) Verify OTP ---------------- */
 router.post("/verify-otp", async (req, res) => {
+  logApi(req, res, "verify-otp");
   try {
     const { countryCode, phone, otp } = req.body;
     if (!countryCode || !phone || !otp) {
@@ -92,8 +102,9 @@ router.post("/verify-otp", async (req, res) => {
   }
 });
 
-// 3) List customers
+/* ---------------- 3) List customers ---------------- */
 router.get("/", async (req, res) => {
+  logApi(req, res, "list-customers");
   try {
     const customers = await Customer.find().sort({ createdAt: -1 });
     res.json(customers);
@@ -102,4 +113,5 @@ router.get("/", async (req, res) => {
     res.status(500).json({ message: "Server error" });
   }
 });
+
 module.exports = router;

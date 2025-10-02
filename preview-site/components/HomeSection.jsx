@@ -98,20 +98,24 @@ export default function HomeSection({ businessName }) {
         {/* Buttons */}
         <div style={{ display: "flex", gap: "20px", flexWrap: "wrap" }}>
           <button
-            onClick={() => router.push("#products")}
-            style={{
-              padding: "12px 24px",
-              backgroundColor: "#FBBF24",
-              color: "black",
-              border: "none",
-              borderRadius: "30px",
-              cursor: "pointer",
-              fontWeight: "bold",
-              fontSize: "16px",
-            }}
-          >
-            View Products
-          </button>
+  onClick={() => {
+    const el = document.getElementById("products");
+    if (el) el.scrollIntoView({ behavior: "smooth" });
+  }}
+  style={{
+    padding: "12px 24px",
+    backgroundColor: "#FBBF24",
+    color: "black",
+    border: "none",
+    borderRadius: "30px",
+    cursor: "pointer",
+    fontWeight: "bold",
+    fontSize: "16px",
+  }}
+>
+  View Products
+</button>
+
           <button
             onClick={() => alert("Order Now Clicked")}
             style={{

@@ -3,23 +3,28 @@ const multer = require("multer");
 const Category = require("../models/Category");
 
 const router = express.Router();
-
-// setup multer
 const upload = multer({ dest: "uploads/" });
 
-// create category (image optional; accepts JSON-only too)
-router.post("/", async (req, res, next) => {
-  try {
-    const { name, parentId, price, terms, visibleToUser, visibleToVendor } =
-      req.body;
+// helper: log duration
+function logApi(req, res, label) {
+  const start = Date.now();
+  res.on("finish", () => {
+    const duration = Date.now() - start;
+    console.log(`[API] ${req.method} ${req.originalUrl} - ${res.statusCode} - ${duration}ms ${label || ""}`);
+  });
+}
 
-    if (!name)
-      return res.status(400).json({ message: "Name is required" });
+/* ---------------- CREATE CATEGORY ---------------- */
+router.post("/", async (req, res, next) => {
+  logApi(req, res, "create-category");
+  try {
+    const { name, parentId, price, terms, visibleToUser, visibleToVendor } = req.body;
+
+    if (!name) return res.status(400).json({ message: "Name is required" });
 
     if (!parentId) {
       const exists = await Category.findOne({ name, parent: null });
-      if (exists)
-        return res.status(400).json({ message: "Category already exists" });
+      if (exists) return res.status(400).json({ message: "Category already exists" });
     }
 
     const parsedSequence = (() => {
@@ -35,7 +40,6 @@ router.post("/", async (req, res, next) => {
 
     const category = new Category({
       name,
-      // if multipart used and file exists, middleware isn't attached here; keep imageUrl optional
       imageUrl: req.file ? `/uploads/${req.file.filename}` : undefined,
       parent: parentId || null,
       price: parsedPrice,
@@ -46,10 +50,7 @@ router.post("/", async (req, res, next) => {
     });
 
     const saved = await category.save();
-    console.log("💾 Saved category:", {
-      id: saved._id.toString(),
-      name: saved.name,
-    });
+    console.log("💾 Saved category:", { id: saved._id.toString(), name: saved.name });
     res.json(saved);
   } catch (err) {
     console.error("🔥 POST /api/categories error:", err.message);
@@ -57,9 +58,9 @@ router.post("/", async (req, res, next) => {
   }
 });
 
-// get categories
-// get categories
+/* ---------------- GET CATEGORIES ---------------- */
 router.get("/", async (req, res, next) => {
+  logApi(req, res, "list-categories");
   try {
     let { parentId } = req.query;
     parentId = parentId === "null" ? null : parentId;
@@ -73,33 +74,24 @@ router.get("/", async (req, res, next) => {
   }
 });
 
-// Update category
-// Update category
+/* ---------------- UPDATE CATEGORY ---------------- */
 router.put("/:id", upload.single("image"), async (req, res, next) => {
+  logApi(req, res, "update-category");
   try {
     const category = await Category.findById(req.params.id);
-    if (!category)
-      return res.status(404).json({ message: "Category not found" });
+    if (!category) return res.status(404).json({ message: "Category not found" });
 
     const { name, price, terms, visibleToUser, visibleToVendor } = req.body;
 
     if (name !== undefined) category.name = name;
-
-    // If price is empty string or null → set null
-    // Convert price properly
     category.price = price === "" || price === undefined ? null : Number(price);
-   
-    // If terms is empty string → set empty
     category.terms = terms !== undefined ? terms : category.terms;
-
     category.visibleToUser = visibleToUser === "true";
     category.visibleToVendor = visibleToVendor === "true";
 
     if (req.body.sequence !== undefined) {
-      category.sequence =
-        req.body.sequence === "" ? 0 : Number(req.body.sequence);
+      category.sequence = req.body.sequence === "" ? 0 : Number(req.body.sequence);
     }
-
     if (req.file) category.imageUrl = `/uploads/${req.file.filename}`;
 
     await category.save();
@@ -110,8 +102,9 @@ router.put("/:id", upload.single("image"), async (req, res, next) => {
   }
 });
 
-// delete category
+/* ---------------- DELETE CATEGORY ---------------- */
 router.delete("/:id", async (req, res, next) => {
+  logApi(req, res, "delete-category");
   try {
     await Category.findByIdAndDelete(req.params.id);
     res.json({ message: "Category deleted" });
@@ -120,12 +113,12 @@ router.delete("/:id", async (req, res, next) => {
   }
 });
 
-// get single category by id
+/* ---------------- GET SINGLE CATEGORY ---------------- */
 router.get("/:id", async (req, res, next) => {
+  logApi(req, res, "get-category");
   try {
     const category = await Category.findById(req.params.id);
-    if (!category)
-      return res.status(404).json({ message: "Category not found" });
+    if (!category) return res.status(404).json({ message: "Category not found" });
     res.json(category);
   } catch (err) {
     console.error("🔥 GET /api/categories/:id error:", err.message);
@@ -133,10 +126,9 @@ router.get("/:id", async (req, res, next) => {
   }
 });
 
-module.exports = router;
-
-// Debug: count categories and report namespace
+/* ---------------- DEBUG ROUTES ---------------- */
 router.get("/_debug/count", async (req, res, next) => {
+  logApi(req, res, "debug-count");
   try {
     const count = await Category.countDocuments({});
     const conn = require("mongoose").connection;
@@ -150,8 +142,8 @@ router.get("/_debug/count", async (req, res, next) => {
   }
 });
 
-// Debug: insert a probe document and return namespace
 router.post("/_debug/probe", async (req, res, next) => {
+  logApi(req, res, "debug-probe");
   try {
     const probeName = `__probe_${Date.now()}`;
     const saved = await Category.create({ name: probeName });
@@ -165,3 +157,5 @@ router.post("/_debug/probe", async (req, res, next) => {
     next(err);
   }
 });
+
+module.exports = router;

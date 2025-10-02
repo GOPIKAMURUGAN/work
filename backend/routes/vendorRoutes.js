@@ -6,8 +6,26 @@ const Category = require("../models/Category");
 const VendorCategoryPrice = require("../models/VendorCategoryPrice");
 const Customer = require("../models/Customer"); // ✅ MISSING IMPORT
 const getCategoryModel = require("../utils/getCategoryModel");
+const VendorLocation = require("../models/VendorLocation");
 
 const router = express.Router();
+
+/**
+ * 🔹 Middleware: Log every API call in this router
+ */
+router.use((req, res, next) => {
+  const start = Date.now();
+  console.log(`[API START] ${req.method} ${req.originalUrl}`);
+
+  res.on("finish", () => {
+    const duration = Date.now() - start;
+    console.log(
+      `[API END] ${req.method} ${req.originalUrl} → ${res.statusCode} (${duration}ms)`
+    );
+  });
+
+  next();
+});
 
 /**
  * Build category tree safely (recursive)
@@ -20,9 +38,11 @@ async function buildVendorPreviewTree(categoryId, vendorId) {
   const priceDoc = await VendorCategoryPrice.findOne({ vendorId, categoryId }).lean();
   const price = priceDoc?.price ?? category.price;
 
-  // Find children categories recursively
-    // Find children categories recursively
-  const childrenCats = await Category.find({ parent: categoryId }).sort({ sequence: 1, createdAt: -1 }).lean();
+  // Find children recursively
+  const childrenCats = await Category.find({ parent: categoryId })
+    .sort({ sequence: 1, createdAt: -1 })
+    .lean();
+
   const children = [];
   for (const child of childrenCats) {
     const childTree = await buildVendorPreviewTree(child._id, vendorId);
@@ -37,6 +57,7 @@ async function buildVendorPreviewTree(categoryId, vendorId) {
     children,
   };
 }
+
 
 
  
@@ -128,12 +149,25 @@ router.get("/categories/counts", async (req, res) => {
  * Vendors by category and status
  * GET /api/vendors/byCategory/:categoryId?status=Accepted
  */
+
+
+// GET vendors by category and status
 router.get("/byCategory/:categoryId", async (req, res) => {
   try {
     const { categoryId } = req.params;
     const { status } = req.query;
-    const match = { categoryId };
-    if (status) match.status = status;
+
+    if (!mongoose.Types.ObjectId.isValid(categoryId)) {
+      return res.status(400).json({ message: "Invalid categoryId" });
+    }
+
+    // Match vendors for this categoryId
+    const match = { categoryId: new mongoose.Types.ObjectId(categoryId) };
+
+    // Optional: filter by status
+    if (status) {
+      match.status = new RegExp(`^${status}$`, "i");
+    }
 
     const vendors = await Vendor.find(match)
       .populate("customerId", "fullNumber phone")
@@ -146,6 +180,11 @@ router.get("/byCategory/:categoryId", async (req, res) => {
     res.status(500).json({ message: "Server error" });
   }
 });
+
+
+
+
+
 
 /**
  * GET single vendor
@@ -228,6 +267,28 @@ router.get("/:vendorId/categories", async (req, res) => {
   } catch (err) {
     console.error("Error fetching vendor categories:", err);
     res.status(500).json({ message: "Server error", error: err.message });
+  }
+});
+
+
+/**
+ * GET all vendors by status (ignores category)
+ * Example: /api/vendors/byStatus/Waiting%20for%20Approval
+ */
+router.get("/byStatus/:status", async (req, res) => {
+  try {
+    const { status } = req.params;
+
+    // Use case-insensitive exact match
+    const vendors = await Vendor.find({ status: new RegExp(`^${status}$`, "i") })
+      .populate("customerId", "fullNumber phone")
+      .populate("categoryId", "name")
+      .lean();
+
+    res.json(vendors);
+  } catch (err) {
+    console.error("GET /vendors/byStatus error:", err);
+    res.status(500).json({ message: "Server error" });
   }
 });
 
@@ -333,57 +394,67 @@ router.post("/", async (req, res) => {
  * GET vendor preview
  */
 // GET vendor preview with all nested subcategories
+// GET vendor preview (optimized)
 router.get("/:vendorId/preview/:categoryId", async (req, res) => {
   try {
     const { vendorId, categoryId } = req.params;
 
-    if (!mongoose.Types.ObjectId.isValid(vendorId))
-      return res.status(400).json({ message: "Invalid vendorId" });
-    if (!mongoose.Types.ObjectId.isValid(categoryId))
-      return res.status(400).json({ message: "Invalid categoryId" });
+    if (!mongoose.Types.ObjectId.isValid(vendorId) || !mongoose.Types.ObjectId.isValid(categoryId)) {
+      return res.status(400).json({ message: "Invalid IDs" });
+    }
 
+    // 1. Fetch vendor
     const vendor = await Vendor.findById(vendorId).lean();
     if (!vendor) return res.status(404).json({ message: "Vendor not found" });
 
-    // Fetch all vendor pricing for faster lookup
+    // 2. Fetch all categories once
+    const allCategories = await Category.find().sort({ sequence: 1, createdAt: -1 }).lean();
+
+    // 3. Build category map
+    const catMap = {};
+    allCategories.forEach((c) => { catMap[c._id.toString()] = { ...c, children: [] }; });
+
+    // 4. Build tree structure (parent → children)
+    allCategories.forEach((c) => {
+      if (c.parent) {
+        const parent = catMap[c.parent.toString()];
+        if (parent) parent.children.push(catMap[c._id.toString()]);
+      }
+    });
+
+    // 5. Fetch vendor-specific prices in one query
     const vendorPricings = await VendorCategoryPrice.find({ vendorId }).lean();
     const vendorPricingMap = {};
-    vendorPricings.forEach(p => {
+    vendorPricings.forEach((p) => {
       vendorPricingMap[p.categoryId.toString()] = p.price;
     });
 
-    // Helper: find top-most parent
-    async function findRoot(catId) {
-      let cat = await Category.findById(catId).lean();
-      while (cat.parent) {
-        cat = await Category.findById(cat.parent).lean();
-      }
-      return cat;
+    // 6. Find root category for this preview
+    let root = catMap[categoryId];
+    while (root?.parent) {
+      root = catMap[root.parent.toString()];
     }
+    if (!root) return res.status(404).json({ message: "Root category not found" });
 
-    const root = await findRoot(categoryId);
-
-    // Recursive function to build tree
-        async function buildTree(catId) {
-      const cat = await Category.findById(catId).lean();
-      if (!cat) return null;
-
-      const price = vendorPricingMap[cat._id.toString()] ?? cat.price;
-
-      const childrenDocs = await Category.find({ parent: catId }).sort({ sequence: 1, createdAt: -1 }).lean();
-      const children = await Promise.all(childrenDocs.map(c => buildTree(c._id)));
+    // 7. Attach vendorPrice + transform recursively
+    function attachPrices(node) {
+      const vendorPrice = vendorPricingMap[node._id.toString()] ?? node.price;
 
       return {
-        id: cat._id,
-        name: cat.name,
-        price,
-        imageUrl: cat.imageUrl || null,
-        terms: cat.terms || "",
-        children: children.filter(Boolean),
+        id: node._id,
+        name: node.name,
+        price: node.price,
+        vendorPrice,
+        imageUrl: node.imageUrl || null,
+        terms: node.terms || "",
+        children: node.children.map(attachPrices),
       };
     }
 
-    const tree = await buildTree(root._id);
+    const tree = attachPrices(root);
+
+    // 8. Vendor location
+    const location = await VendorLocation.findOne({ vendorId }).lean();
 
     res.json({
       vendor: {
@@ -391,10 +462,10 @@ router.get("/:vendorId/preview/:categoryId", async (req, res) => {
         contactName: vendor.contactName,
         businessName: vendor.businessName,
         phone: vendor.phone,
+        location: location || null,
       },
       categories: tree,
     });
-
   } catch (err) {
     console.error("Error fetching vendor preview:", err);
     res.status(500).json({ message: "Server error", error: err.message });
@@ -402,6 +473,69 @@ router.get("/:vendorId/preview/:categoryId", async (req, res) => {
 });
 
 
+
+
+
+// GET /api/vendors/:vendorId/location
+router.get("/:vendorId/location", async (req, res) => {
+  try {
+    const location = await VendorLocation.findOne({ vendorId: req.params.vendorId });
+    if (!location) return res.status(404).json({ message: "Location not found" });
+    res.json({ success: true, location });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
+
+// PUT /api/vendors/:vendorId/location
+
+
+router.put("/:vendorId/location", async (req, res) => {
+  try {
+    const { lat, lng, address, nearbyLocations } = req.body;
+
+    if (lat == null || lng == null) {
+      return res.status(400).json({ message: "Latitude and longitude are required" });
+    }
+
+    // Ensure nearbyLocations is always an array of strings
+    const safeNearbyLocations = Array.isArray(nearbyLocations)
+      ? nearbyLocations.map(String)
+      : [];
+
+    // Reverse geocode safely
+    let area = "";
+    let city = "";
+    try {
+      if (lat && lng) {
+        const response = await fetch(
+          `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lng}`
+        );
+        const data = await response.json();
+        area = data.address?.suburb || data.address?.neighbourhood || "";
+        city =
+          data.address?.city ||
+          data.address?.town ||
+          data.address?.village ||
+          "";
+      }
+    } catch (err) {
+      console.error("Reverse geocode failed", err);
+    }
+
+    const vendorLocation = await VendorLocation.findOneAndUpdate(
+      { vendorId: req.params.vendorId },
+      { lat, lng, address, area, city, nearbyLocations: safeNearbyLocations },
+      { upsert: true, new: true }
+    );
+
+    res.json({ success: true, location: vendorLocation });
+  } catch (err) {
+    console.error("PUT /location error:", err);
+    res.status(500).json({ message: "Server error", error: err.message });
+  }
+});
 
 
 

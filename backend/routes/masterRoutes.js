@@ -5,8 +5,18 @@ const Master = require("../models/Master");
 const router = express.Router();
 const upload = multer({ dest: "uploads/" });
 
-// GET masters (roots or by parentId)
+// helper: log duration
+function logApi(req, res, label) {
+  const start = Date.now();
+  res.on("finish", () => {
+    const duration = Date.now() - start;
+    console.log(`[API] ${req.method} ${req.originalUrl} - ${res.statusCode} - ${duration}ms ${label || ""}`);
+  });
+}
+
+/* ---------------- GET masters (roots or by parentId) ---------------- */
 router.get("/", async (req, res) => {
+  logApi(req, res, "list-masters");
   try {
     const parentId = req.query.parentId || null;
     const filter = parentId ? { parent: parentId } : { parent: null };
@@ -17,8 +27,9 @@ router.get("/", async (req, res) => {
   }
 });
 
-// GET one
+/* ---------------- GET one master ---------------- */
 router.get("/:id", async (req, res) => {
+  logApi(req, res, "get-master");
   try {
     const item = await Master.findById(req.params.id);
     if (!item) return res.status(404).json({ message: "Not found" });
@@ -28,11 +39,13 @@ router.get("/:id", async (req, res) => {
   }
 });
 
-// CREATE master
+/* ---------------- CREATE master ---------------- */
 router.post("/", upload.single("image"), async (req, res) => {
+  logApi(req, res, "create-master");
   try {
     const { name, parentId, visibleToUser, visibleToVendor, sequence } = req.body;
     console.log("POST /api/masters", { name, parentId });
+
     if (!name) return res.status(400).json({ message: "Name required" });
 
     const exists = await Master.findOne({ name, parent: parentId || null });
@@ -69,8 +82,9 @@ router.post("/", upload.single("image"), async (req, res) => {
   }
 });
 
-// UPDATE master
+/* ---------------- UPDATE master ---------------- */
 router.put("/:id", upload.single("image"), async (req, res) => {
+  logApi(req, res, "update-master");
   try {
     const { name, visibleToUser, visibleToVendor, sequence } = req.body;
     const updates = {};
@@ -88,8 +102,9 @@ router.put("/:id", upload.single("image"), async (req, res) => {
   }
 });
 
-// DELETE master
+/* ---------------- DELETE master ---------------- */
 router.delete("/:id", async (req, res) => {
+  logApi(req, res, "delete-master");
   try {
     await Master.findByIdAndDelete(req.params.id);
     res.json({ success: true });
@@ -99,5 +114,3 @@ router.delete("/:id", async (req, res) => {
 });
 
 module.exports = router;
-
-

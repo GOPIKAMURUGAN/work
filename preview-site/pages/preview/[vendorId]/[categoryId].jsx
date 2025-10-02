@@ -7,52 +7,63 @@ import BenefitsSection from "../../../components/BenefitsSection";
 import AboutSection from "../../../components/AboutSection";
 import ContactSection from "../../../components/ContactSection";
 import Footer from "../../../components/Footer";
-
-const PreviewPage = () => {
+import FullPageShimmer from "../../../components/FullPageShimmer";
+export default function PreviewPage() {
   const router = useRouter();
-  const { vendorId, categoryId } = router.query;
+  const { vendorId, categoryId, lat, lng, homeLocs } = router.query;
 
+// parse
+const parsedHomeLocations = homeLocs ? JSON.parse(homeLocs) : [];
+
+
+  // ✅ State hooks
   const [vendor, setVendor] = useState(null);
   const [categoryTree, setCategoryTree] = useState(null);
   const [loadingVendor, setLoadingVendor] = useState(true);
   const [loadingCategories, setLoadingCategories] = useState(true);
   const [error, setError] = useState("");
   const [selectedLeaf, setSelectedLeaf] = useState(null);
+  const [location, setLocation] = useState(null);
 
-  useEffect(() => {
-    if (!router.isReady || !vendorId) return;
-    setLoadingVendor(true);
-    fetch(`/api/vendors/${vendorId}`)
-      .then(async (res) => {
-        if (!res.ok) throw new Error(await res.text());
-        return res.json();
-      })
-      .then((data) => setVendor(data))
-      .catch((err) => setError(err.message))
-      .finally(() => setLoadingVendor(false));
-  }, [router.isReady, vendorId]);
+  // ✅ Combined loading
+  const loading = loadingVendor || loadingCategories;
 
+  // ----------------- Fetch vendor & categories -----------------
   useEffect(() => {
     if (!router.isReady || !vendorId || !categoryId) return;
+
+    setLoadingVendor(true);
     setLoadingCategories(true);
-    fetch(`/api/vendors/${vendorId}/preview/${categoryId}`)
-      .then(async (res) => {
-        const data = await res.json();
-        if (!res.ok) throw new Error(data.message || "Category not found");
-        return data;
+
+    Promise.all([
+      fetch(`/api/vendors/${vendorId}`).then((res) => res.json()),
+      fetch(`/api/vendors/${vendorId}/preview/${categoryId}`).then((res) =>
+        res.json()
+      ),
+    ])
+      .then(([vendorData, categoryData]) => {
+        setVendor(vendorData);
+        setCategoryTree(categoryData.categories);
       })
-      .then((data) => setCategoryTree(data.categories))
       .catch((err) => setError(err.message))
-      .finally(() => setLoadingCategories(false));
+      .finally(() => {
+        setLoadingVendor(false);
+        setLoadingCategories(false);
+      });
   }, [router.isReady, vendorId, categoryId]);
 
-  if (error) return <p style={{ color: "red" }}>Error: {error}</p>;
-  if (loadingVendor) return <p>Loading vendor info...</p>;
-  if (!vendor) return <p>Vendor not found.</p>;
-  if (loadingCategories) return <p>Loading categories...</p>;
-  if (!categoryTree) return <p>No categories found.</p>;
+  // ----------------- Compute location -----------------
+  useEffect(() => {
+    if (lat && lng) {
+      setLocation({ lat: parseFloat(lat), lng: parseFloat(lng) });
+    } else if (vendor?.location) {
+      setLocation(vendor.location);
+    } else {
+      setLocation(null);
+    }
+  }, [lat, lng, vendor]);
 
-  // helpers
+  // ----------------- Helpers -----------------
   const hasChildren = (node) =>
     node && Array.isArray(node.children) && node.children.length > 0;
 
@@ -63,12 +74,7 @@ const PreviewPage = () => {
     return node.children.some((c) => containsId(c, id));
   };
 
-  const scrollToProducts = () => {
-    const el = document.getElementById("products");
-    if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
-  };
-
-  // Card component for product display
+  // ----------------- Card Component -----------------
   const ParentWithSizesCard = ({ node, selectedLeaf, onLeafSelect }) => {
     if (!node) return null;
 
@@ -86,7 +92,6 @@ const PreviewPage = () => {
       }
     }, [node]);
 
-    // Sync visible buttons with the globally selected leaf
     useEffect(() => {
       if (!selectedLeaf) return;
       const contains = (n) => {
@@ -169,7 +174,14 @@ const PreviewPage = () => {
           )}
 
           {node.children?.length > 0 && (
-            <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 10 }}>
+            <div
+              style={{
+                display: "flex",
+                flexWrap: "wrap",
+                gap: 8,
+                marginBottom: 10,
+              }}
+            >
               {node.children.map((opt) => (
                 <button
                   key={opt.id}
@@ -181,8 +193,11 @@ const PreviewPage = () => {
                     padding: "6px 12px",
                     borderRadius: 999,
                     border:
-                      selectedParent?.id === opt.id ? "2px solid #059669" : "1px solid #d1d5db",
-                    background: selectedParent?.id === opt.id ? "#059669" : "#f9fafb",
+                      selectedParent?.id === opt.id
+                        ? "2px solid #059669"
+                        : "1px solid #d1d5db",
+                    background:
+                      selectedParent?.id === opt.id ? "#059669" : "#f9fafb",
                     color: selectedParent?.id === opt.id ? "#fff" : "#111827",
                     cursor: "pointer",
                     fontSize: 13,
@@ -195,7 +210,14 @@ const PreviewPage = () => {
           )}
 
           {selectedParent?.children?.length > 0 && (
-            <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 12 }}>
+            <div
+              style={{
+                display: "flex",
+                flexWrap: "wrap",
+                gap: 8,
+                marginBottom: 12,
+              }}
+            >
               {selectedParent.children.map((child) => (
                 <button
                   key={child.id}
@@ -204,7 +226,9 @@ const PreviewPage = () => {
                     padding: "6px 12px",
                     borderRadius: 999,
                     border:
-                      selectedLeaf?.id === child.id ? "2px solid #2563eb" : "1px solid #d1d5db",
+                      selectedLeaf?.id === child.id
+                        ? "2px solid #2563eb"
+                        : "1px solid #d1d5db",
                     background:
                       selectedLeaf?.id === child.id ? "#2563eb" : "#f9fafb",
                     color: selectedLeaf?.id === child.id ? "#fff" : "#111827",
@@ -216,8 +240,6 @@ const PreviewPage = () => {
                 </button>
               ))}
             </div>
-
-
           )}
 
           <button
@@ -241,30 +263,21 @@ const PreviewPage = () => {
     );
   };
 
-  const filterTreeByLeaf = (root, leafId) => {
-    if (!leafId) return root;
-    if (!root) return root;
-    if (root.id === leafId) return root;
-    if (!root.children) return null;
-    const filteredChildren = root.children
-      .map((c) => filterTreeByLeaf(c, leafId))
-      .filter(Boolean);
-    if (filteredChildren.length === 0) return null;
-    return { ...root, children: filteredChildren };
-  };
-
+  // ----------------- Render tree -----------------
   const renderTree = (root) => {
     if (!root || !Array.isArray(root.children)) return null;
 
     return root.children.map((lvl1) => {
-      const hasNested = lvl1.children && lvl1.children.some((c) => hasChildren(c));
+      const hasNested =
+        lvl1.children && lvl1.children.some((c) => hasChildren(c));
 
       if (hasNested) {
         const visibleChildren = selectedLeaf
-          ? (selectedLeaf.id === lvl1.id
-              ? lvl1.children
-              : lvl1.children?.filter((child) => containsId(child, selectedLeaf.id))
-            )
+          ? selectedLeaf.id === lvl1.id
+            ? lvl1.children
+            : lvl1.children?.filter((child) =>
+                containsId(child, selectedLeaf.id)
+              )
           : lvl1.children;
 
         if (!visibleChildren || visibleChildren.length === 0) return null;
@@ -289,53 +302,70 @@ const PreviewPage = () => {
                   selectedLeaf={selectedLeaf}
                   onLeafSelect={(leaf) => setSelectedLeaf(leaf)}
                 />
-
               ))}
             </div>
           </section>
         );
       }
 
-      if (selectedLeaf) {
-        // If a top-level category is selected, show all its immediate cards.
-        if (selectedLeaf.id !== lvl1.id && !containsId(lvl1, selectedLeaf.id)) return null;
-      }
+      if (
+        selectedLeaf &&
+        selectedLeaf.id !== lvl1.id &&
+        !containsId(lvl1, selectedLeaf.id)
+      )
+        return null;
 
       return (
         <div
           key={lvl1.id}
-          style={{ display: "inline-flex", verticalAlign: "top", marginRight: 16, marginBottom: 28 }}
+          style={{
+            display: "inline-flex",
+            verticalAlign: "top",
+            marginRight: 16,
+            marginBottom: 28,
+          }}
         >
-          <ParentWithSizesCard node={lvl1} selectedLeaf={selectedLeaf} onLeafSelect={(leaf) => setSelectedLeaf(leaf)} />
+          <ParentWithSizesCard
+            node={lvl1}
+            selectedLeaf={selectedLeaf}
+            onLeafSelect={(leaf) => setSelectedLeaf(leaf)}
+          />
         </div>
       );
     });
   };
 
   return (
-    <div style={{ padding: 0, background: "#F0FDF4", fontFamily: "Poppins, sans-serif" }}>
-      
-<TopNavBar
-  businessName={vendor.businessName}
-  categoryTree={categoryTree}
-  selectedLeaf={selectedLeaf} // pass selectedLeaf
-  onLeafSelect={(leaf) => {
-    setSelectedLeaf(leaf); // update selected leaf
-    scrollToProducts(); // scroll to products
-  }}
-  onProductsClick={scrollToProducts}
+    <div style={{ padding: 0, background: "#F0FDF4" }}>
+      {loading ? (
+        <FullPageShimmer />
+      ) : (
+        <>
+          <TopNavBar
+            businessName={vendor?.businessName || "Loading..."}
+            categoryTree={categoryTree}
+            selectedLeaf={selectedLeaf}
+            onLeafSelect={setSelectedLeaf}
+          />
+
+          <HomeSection businessName={vendor?.businessName || "Loading..."} />
+          <main id="products" style={{ padding: "20px", marginTop: "10px" }}>
+            {renderTree(categoryTree)}
+          </main>
+          <BenefitsSection />
+          <AboutSection />
+          <ContactSection
+  contactNumber={vendor?.customerId?.fullNumber || vendor?.phone || "-"}
+  location={location}
+  homeLocations={parsedHomeLocations} // NEW
+  vendorId={vendorId}
+  onLocationUpdate={(newLoc) => setLocation(newLoc)}
 />
 
-      <HomeSection businessName={vendor.businessName} />
-      <main id="products" style={{ padding: "20px", marginTop: "10px" }}>
-        {renderTree(categoryTree)}
-      </main>
-      <BenefitsSection />
-      <AboutSection />
-      <ContactSection />
-      <Footer />
+
+          <Footer />
+        </>
+      )}
     </div>
   );
-};
-
-export default PreviewPage;
+}
