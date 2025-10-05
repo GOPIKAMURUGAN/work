@@ -204,6 +204,7 @@ const parsedHomeLocations = homeLocs ? JSON.parse(homeLocs) : [];
               {node.children.map((opt) => (
                 <button
                   key={opt.id}
+                  type="button"
                   onClick={() => {
                     // select this parent and default to its deepest-first leaf
                     const getDeepestFirstChild = (n) => {
@@ -245,6 +246,7 @@ const parsedHomeLocations = homeLocs ? JSON.parse(homeLocs) : [];
               {selectedParent.children.map((child) => (
                 <button
                   key={child.id}
+                  type="button"
                   onClick={() => {
                     setSelectedChild(child);
                     onLeafSelect?.(child);
@@ -299,13 +301,7 @@ const parsedHomeLocations = homeLocs ? JSON.parse(homeLocs) : [];
         lvl1.children && lvl1.children.some((c) => hasChildren(c));
 
       if (hasNested) {
-        const visibleChildren = selectedLeaf
-          ? selectedLeaf.id === lvl1.id
-            ? lvl1.children
-            : lvl1.children?.filter((child) =>
-                containsId(child, selectedLeaf.id)
-              )
-          : lvl1.children;
+        const visibleChildren = lvl1.children;
 
         if (!visibleChildren || visibleChildren.length === 0) return null;
 
@@ -335,12 +331,7 @@ const parsedHomeLocations = homeLocs ? JSON.parse(homeLocs) : [];
         );
       }
 
-      if (
-        selectedLeaf &&
-        selectedLeaf.id !== lvl1.id &&
-        !containsId(lvl1, selectedLeaf.id)
-      )
-        return null;
+      // Always render all top-level cards regardless of global selection
 
       return (
         <div
