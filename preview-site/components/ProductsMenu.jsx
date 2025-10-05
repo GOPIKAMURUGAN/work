@@ -13,6 +13,12 @@ export default function ProductsMenu({ root, selectedLeaf, onLeafSelect }) {
     });
   };
 
+  const getDeepestFirstLeaf = (node) => {
+    if (!node) return null;
+    if (!hasChildren(node)) return node;
+    return getDeepestFirstLeaf(node.children[0]);
+  };
+
   const NodeItem = ({ node, depth = 0 }) => {
     if (!node) return null;
     const isParent = hasChildren(node);
@@ -23,7 +29,10 @@ export default function ProductsMenu({ root, selectedLeaf, onLeafSelect }) {
       <div style={{ marginLeft: depth * 12 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
           <span
-            onClick={() => onLeafSelect(node)}
+            onClick={() => {
+              const target = isParent ? getDeepestFirstLeaf(node) : node;
+              if (target) onLeafSelect(target);
+            }}
             style={{
               cursor: "pointer",
               fontWeight: isSelected ? 600 : 500,
