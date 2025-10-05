@@ -52,6 +52,7 @@ export default function TopNavBar({ businessName, categoryTree, selectedLeaf, on
           {/* Products Dropdown */}
           <li style={{ position: "relative" }} key="Products">
             <button
+              type="button"
               onClick={() => setOpen(!open)} // toggle dropdown
               style={{
                 background: "transparent",
@@ -105,6 +106,12 @@ export default function TopNavBar({ businessName, categoryTree, selectedLeaf, on
                   fontWeight: 500,
                   fontSize: "16px",
                   transition: "color 0.2s",
+                  cursor: "pointer",
+                }}
+                onClick={(e) => {
+                  e.preventDefault();
+                  const el = document.getElementById(item.toLowerCase());
+                  if (el) el.scrollIntoView({ behavior: "smooth" });
                 }}
                 onMouseOver={(e) => (e.currentTarget.style.color = "#059669")}
                 onMouseOut={(e) => (e.currentTarget.style.color = "#333333")}

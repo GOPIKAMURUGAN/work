@@ -99,6 +99,7 @@ export default function AboutSection() {
           <p style={{ marginBottom: "20px", color: "white" }}>Pure Service</p>
 
           <button
+            type="button"
             style={{
               padding: "10px 20px",
               backgroundColor: "#369B7D",

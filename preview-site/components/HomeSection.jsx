@@ -98,6 +98,7 @@ export default function HomeSection({ businessName }) {
         {/* Buttons */}
         <div style={{ display: "flex", gap: "20px", flexWrap: "wrap" }}>
           <button
+  type="button"
   onClick={() => {
     const el = document.getElementById("products");
     if (el) el.scrollIntoView({ behavior: "smooth" });
@@ -117,6 +118,7 @@ export default function HomeSection({ businessName }) {
 </button>
 
           <button
+            type="button"
             onClick={() => alert("Order Now Clicked")}
             style={{
               padding: "12px 24px",

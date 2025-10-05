@@ -1,5 +1,5 @@
 // pages/preview/[vendorId]/[categoryId].jsx
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/router";
 import TopNavBar from "../../../components/TopNavBar";
 import HomeSection from "../../../components/HomeSection";
@@ -80,6 +80,7 @@ const parsedHomeLocations = homeLocs ? JSON.parse(homeLocs) : [];
 
     const [selectedParent, setSelectedParent] = useState(null);
     const [selectedChild, setSelectedChild] = useState(null);
+    const lastInitNodeIdRef = useRef(null);
 
     useEffect(() => {
       // pick the deepest-first leaf under a given node
@@ -88,6 +89,8 @@ const parsedHomeLocations = homeLocs ? JSON.parse(homeLocs) : [];
         return getDeepestFirstChild(n.children[0]);
       };
 
+      // Initialize defaults only once per node id
+      if (lastInitNodeIdRef.current === node?.id) return;
       if (Array.isArray(node.children) && node.children.length > 0) {
         const defaultParent = node.children[0];
         setSelectedParent(defaultParent);
@@ -96,7 +99,8 @@ const parsedHomeLocations = homeLocs ? JSON.parse(homeLocs) : [];
         setSelectedParent(node);
         setSelectedChild(getDeepestFirstChild(node));
       }
-    }, [node]);
+      lastInitNodeIdRef.current = node?.id;
+    }, [node?.id]);
 
     useEffect(() => {
       if (!selectedLeaf) return;
@@ -119,18 +123,9 @@ const parsedHomeLocations = homeLocs ? JSON.parse(homeLocs) : [];
       }
     }, [selectedLeaf, node]);
 
-    // When the selected parent changes, ensure the child defaults to its deepest-first leaf
-    useEffect(() => {
-      if (!selectedParent) return;
-      const getDeepestFirstChild = (n) => {
-        if (!n?.children?.length) return n;
-        return getDeepestFirstChild(n.children[0]);
-      };
-      const leaf = getDeepestFirstChild(selectedParent);
-      if (leaf && selectedChild?.id !== leaf.id) {
-        setSelectedChild(leaf);
-      }
-    }, [selectedParent]);
+    // Note: do not auto-reset selectedChild on selectedParent changes here.
+    // Parent chip click handler already sets the default, and external selections
+    // (e.g., from menu) explicitly set selectedChild to the chosen leaf.
 
     const displayNode = selectedChild || selectedParent;
 
@@ -284,6 +279,7 @@ const parsedHomeLocations = homeLocs ? JSON.parse(homeLocs) : [];
               fontWeight: 600,
               cursor: "pointer",
             }}
+            type="button"
           >
             Book Now
           </button>
