@@ -99,6 +99,7 @@ export default function LocationPickerModal({
               style={{ flex: 1, padding: "4px" }}
             />
             <button
+              type="button"
               onClick={() => handleRemove(idx)}
               style={{
                 padding: "4px 8px",
@@ -115,6 +116,7 @@ export default function LocationPickerModal({
 
         <div style={{ display: "flex", justifyContent: "space-between", marginTop: 12 }}>
           <button
+            type="button"
             onClick={handleAddLocation}
             style={{
               padding: "6px 12px",
@@ -128,6 +130,7 @@ export default function LocationPickerModal({
           </button>
           <div style={{ display: "flex", gap: "8px" }}>
             <button
+              type="button"
               onClick={onClose}
               style={{
                 padding: "6px 12px",
@@ -139,6 +142,7 @@ export default function LocationPickerModal({
               Cancel
             </button>
             <button
+              type="button"
               onClick={handleSave}
               style={{
                 padding: "6px 12px",

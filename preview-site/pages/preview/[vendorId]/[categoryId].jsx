@@ -1,5 +1,5 @@
 // pages/preview/[vendorId]/[categoryId].jsx
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/router";
 import TopNavBar from "../../../components/TopNavBar";
 import HomeSection from "../../../components/HomeSection";
@@ -80,17 +80,27 @@ const parsedHomeLocations = homeLocs ? JSON.parse(homeLocs) : [];
 
     const [selectedParent, setSelectedParent] = useState(null);
     const [selectedChild, setSelectedChild] = useState(null);
+    const lastInitNodeIdRef = useRef(null);
 
     useEffect(() => {
-      if (node.children?.length > 0) {
+      // pick the deepest-first leaf under a given node
+      const getDeepestFirstChild = (n) => {
+        if (!n?.children?.length) return n;
+        return getDeepestFirstChild(n.children[0]);
+      };
+
+      // Initialize defaults only once per node id
+      if (lastInitNodeIdRef.current === node?.id) return;
+      if (Array.isArray(node.children) && node.children.length > 0) {
         const defaultParent = node.children[0];
         setSelectedParent(defaultParent);
-        setSelectedChild(defaultParent.children?.[0] || defaultParent);
+        setSelectedChild(getDeepestFirstChild(defaultParent));
       } else {
         setSelectedParent(node);
-        setSelectedChild(node);
+        setSelectedChild(getDeepestFirstChild(node));
       }
-    }, [node]);
+      lastInitNodeIdRef.current = node?.id;
+    }, [node?.id]);
 
     useEffect(() => {
       if (!selectedLeaf) return;
@@ -112,6 +122,10 @@ const parsedHomeLocations = homeLocs ? JSON.parse(homeLocs) : [];
         setSelectedChild(selectedLeaf);
       }
     }, [selectedLeaf, node]);
+
+    // Note: do not auto-reset selectedChild on selectedParent changes here.
+    // Parent chip click handler already sets the default, and external selections
+    // (e.g., from menu) explicitly set selectedChild to the chosen leaf.
 
     const displayNode = selectedChild || selectedParent;
 
@@ -185,9 +199,15 @@ const parsedHomeLocations = homeLocs ? JSON.parse(homeLocs) : [];
               {node.children.map((opt) => (
                 <button
                   key={opt.id}
+                  type="button"
                   onClick={() => {
+                    // select this parent and default to its deepest-first leaf
+                    const getDeepestFirstChild = (n) => {
+                      if (!n?.children?.length) return n;
+                      return getDeepestFirstChild(n.children[0]);
+                    };
                     setSelectedParent(opt);
-                    setSelectedChild(opt.children?.[0] || opt);
+                    setSelectedChild(getDeepestFirstChild(opt));
                   }}
                   style={{
                     padding: "6px 12px",
@@ -221,17 +241,21 @@ const parsedHomeLocations = homeLocs ? JSON.parse(homeLocs) : [];
               {selectedParent.children.map((child) => (
                 <button
                   key={child.id}
-                  onClick={() => onLeafSelect?.(child)}
+                  type="button"
+                  onClick={() => {
+                    setSelectedChild(child);
+                    onLeafSelect?.(child);
+                  }}
                   style={{
                     padding: "6px 12px",
                     borderRadius: 999,
                     border:
-                      selectedLeaf?.id === child.id
+                      selectedChild?.id === child.id
                         ? "2px solid #2563eb"
                         : "1px solid #d1d5db",
                     background:
-                      selectedLeaf?.id === child.id ? "#2563eb" : "#f9fafb",
-                    color: selectedLeaf?.id === child.id ? "#fff" : "#111827",
+                      selectedChild?.id === child.id ? "#2563eb" : "#f9fafb",
+                    color: selectedChild?.id === child.id ? "#fff" : "#111827",
                     cursor: "pointer",
                     fontSize: 13,
                   }}
@@ -255,6 +279,7 @@ const parsedHomeLocations = homeLocs ? JSON.parse(homeLocs) : [];
               fontWeight: 600,
               cursor: "pointer",
             }}
+            type="button"
           >
             Book Now
           </button>
@@ -272,13 +297,7 @@ const parsedHomeLocations = homeLocs ? JSON.parse(homeLocs) : [];
         lvl1.children && lvl1.children.some((c) => hasChildren(c));
 
       if (hasNested) {
-        const visibleChildren = selectedLeaf
-          ? selectedLeaf.id === lvl1.id
-            ? lvl1.children
-            : lvl1.children?.filter((child) =>
-                containsId(child, selectedLeaf.id)
-              )
-          : lvl1.children;
+        const visibleChildren = lvl1.children;
 
         if (!visibleChildren || visibleChildren.length === 0) return null;
 
@@ -308,12 +327,7 @@ const parsedHomeLocations = homeLocs ? JSON.parse(homeLocs) : [];
         );
       }
 
-      if (
-        selectedLeaf &&
-        selectedLeaf.id !== lvl1.id &&
-        !containsId(lvl1, selectedLeaf.id)
-      )
-        return null;
+      // Always render all top-level cards regardless of global selection
 
       return (
         <div

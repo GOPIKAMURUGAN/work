@@ -118,7 +118,7 @@ export default function ContactSection({ contactNumber, location, vendorId, onLo
           {currentLocation && (
             <div style={{ padding: "20px", border: "1px solid #ddd", borderRadius: "10px", background: "#F0FDF4", boxShadow: "0 2px 6px rgba(0,0,0,0.1)" }}>
               <h4 style={{ marginBottom: "10px", fontWeight: "bold" }}>Location</h4>
-              <button onClick={() => setModalOpen(true)} style={{ marginBottom: 8, padding: "6px 12px" }}>Set Home Location</button>
+              <button type="button" onClick={() => setModalOpen(true)} style={{ marginBottom: 8, padding: "6px 12px" }}>Set Home Location</button>
               {areaCity && <p>{areaCity}</p>}
               <iframe
                 title="map"
