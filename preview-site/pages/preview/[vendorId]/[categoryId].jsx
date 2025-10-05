@@ -74,6 +74,37 @@ const parsedHomeLocations = homeLocs ? JSON.parse(homeLocs) : [];
     return node.children.some((c) => containsId(c, id));
   };
 
+  // ----------------- Initialize selection from route -----------------
+  useEffect(() => {
+    if (!categoryTree || !categoryId) return;
+
+    const findNodeById = (node, id) => {
+      if (!node) return null;
+      if (node.id === id) return node;
+      if (!Array.isArray(node.children)) return null;
+      for (const child of node.children) {
+        const found = findNodeById(child, id);
+        if (found) return found;
+      }
+      return null;
+    };
+
+    const getDeepestFirstChild = (n) => {
+      if (!n?.children?.length) return n;
+      return getDeepestFirstChild(n.children[0]);
+    };
+
+    const routeId = Array.isArray(categoryId) ? categoryId[0] : categoryId;
+    const target = findNodeById(categoryTree, routeId);
+    if (!target) return;
+
+    // If already pointing inside target subtree, keep current selection
+    if (selectedLeaf && containsId(target, selectedLeaf.id)) return;
+
+    const leaf = getDeepestFirstChild(target);
+    if (leaf) setSelectedLeaf(leaf);
+  }, [categoryTree, categoryId]);
+
   // ----------------- Card Component -----------------
   const ParentWithSizesCard = ({ node, selectedLeaf, onLeafSelect }) => {
     if (!node) return null;
