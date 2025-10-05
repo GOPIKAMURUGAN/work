@@ -74,6 +74,37 @@ const parsedHomeLocations = homeLocs ? JSON.parse(homeLocs) : [];
     return node.children.some((c) => containsId(c, id));
   };
 
+  // ----------------- Initialize selection from route -----------------
+  useEffect(() => {
+    if (!categoryTree || !categoryId) return;
+
+    const findNodeById = (node, id) => {
+      if (!node) return null;
+      if (node.id === id) return node;
+      if (!Array.isArray(node.children)) return null;
+      for (const child of node.children) {
+        const found = findNodeById(child, id);
+        if (found) return found;
+      }
+      return null;
+    };
+
+    const getDeepestFirstChild = (n) => {
+      if (!n?.children?.length) return n;
+      return getDeepestFirstChild(n.children[0]);
+    };
+
+    const routeId = Array.isArray(categoryId) ? categoryId[0] : categoryId;
+    const target = findNodeById(categoryTree, routeId);
+    if (!target) return;
+
+    // If already pointing inside target subtree, keep current selection
+    if (selectedLeaf && containsId(target, selectedLeaf.id)) return;
+
+    const leaf = getDeepestFirstChild(target);
+    if (leaf) setSelectedLeaf(leaf);
+  }, [categoryTree, categoryId]);
+
   // ----------------- Card Component -----------------
   const ParentWithSizesCard = ({ node, selectedLeaf, onLeafSelect }) => {
     if (!node) return null;
@@ -82,13 +113,20 @@ const parsedHomeLocations = homeLocs ? JSON.parse(homeLocs) : [];
     const [selectedChild, setSelectedChild] = useState(null);
 
     useEffect(() => {
+      if (!node) return;
+      const getDeepestFirstChild = (n) => {
+        if (!n?.children?.length) return n;
+        return getDeepestFirstChild(n.children[0]);
+      };
       if (node.children?.length > 0) {
-        const defaultParent = node.children[0];
-        setSelectedParent(defaultParent);
-        setSelectedChild(defaultParent.children?.[0] || defaultParent);
+        const firstParent = node.children[0];
+        const firstLeaf = getDeepestFirstChild(firstParent);
+        setSelectedParent(firstParent);
+        setSelectedChild(firstLeaf);
       } else {
+        const firstLeaf = getDeepestFirstChild(node);
         setSelectedParent(node);
-        setSelectedChild(node);
+        setSelectedChild(firstLeaf);
       }
     }, [node]);
 
@@ -114,6 +152,19 @@ const parsedHomeLocations = homeLocs ? JSON.parse(homeLocs) : [];
     }, [selectedLeaf, node]);
 
     const displayNode = selectedChild || selectedParent;
+
+    useEffect(() => {
+      // Ensure when selectedParent changes, selectedChild defaults to its deepest-first leaf
+      if (!selectedParent) return;
+      const getDeepestFirstChild = (n) => {
+        if (!n?.children?.length) return n;
+        return getDeepestFirstChild(n.children[0]);
+      };
+      const leaf = getDeepestFirstChild(selectedParent);
+      if (leaf && selectedChild?.id !== leaf.id) {
+        setSelectedChild(leaf);
+      }
+    }, [selectedParent]);
 
     return (
       <section style={{ marginBottom: 28 }}>
@@ -186,8 +237,14 @@ const parsedHomeLocations = homeLocs ? JSON.parse(homeLocs) : [];
                 <button
                   key={opt.id}
                   onClick={() => {
+                    const getDeepestFirstChild = (n) => {
+                      if (!n?.children?.length) return n;
+                      return getDeepestFirstChild(n.children[0]);
+                    };
                     setSelectedParent(opt);
-                    setSelectedChild(opt.children?.[0] || opt);
+                    const leaf = getDeepestFirstChild(opt);
+                    setSelectedChild(leaf);
+                    if (leaf && onLeafSelect) onLeafSelect(leaf);
                   }}
                   style={{
                     padding: "6px 12px",
