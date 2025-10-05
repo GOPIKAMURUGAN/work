@@ -82,13 +82,19 @@ const parsedHomeLocations = homeLocs ? JSON.parse(homeLocs) : [];
     const [selectedChild, setSelectedChild] = useState(null);
 
     useEffect(() => {
-      if (node.children?.length > 0) {
+      // pick the deepest-first leaf under a given node
+      const getDeepestFirstChild = (n) => {
+        if (!n?.children?.length) return n;
+        return getDeepestFirstChild(n.children[0]);
+      };
+
+      if (Array.isArray(node.children) && node.children.length > 0) {
         const defaultParent = node.children[0];
         setSelectedParent(defaultParent);
-        setSelectedChild(defaultParent.children?.[0] || defaultParent);
+        setSelectedChild(getDeepestFirstChild(defaultParent));
       } else {
         setSelectedParent(node);
-        setSelectedChild(node);
+        setSelectedChild(getDeepestFirstChild(node));
       }
     }, [node]);
 
@@ -112,6 +118,19 @@ const parsedHomeLocations = homeLocs ? JSON.parse(homeLocs) : [];
         setSelectedChild(selectedLeaf);
       }
     }, [selectedLeaf, node]);
+
+    // When the selected parent changes, ensure the child defaults to its deepest-first leaf
+    useEffect(() => {
+      if (!selectedParent) return;
+      const getDeepestFirstChild = (n) => {
+        if (!n?.children?.length) return n;
+        return getDeepestFirstChild(n.children[0]);
+      };
+      const leaf = getDeepestFirstChild(selectedParent);
+      if (leaf && selectedChild?.id !== leaf.id) {
+        setSelectedChild(leaf);
+      }
+    }, [selectedParent]);
 
     const displayNode = selectedChild || selectedParent;
 
@@ -186,8 +205,13 @@ const parsedHomeLocations = homeLocs ? JSON.parse(homeLocs) : [];
                 <button
                   key={opt.id}
                   onClick={() => {
+                    // select this parent and default to its deepest-first leaf
+                    const getDeepestFirstChild = (n) => {
+                      if (!n?.children?.length) return n;
+                      return getDeepestFirstChild(n.children[0]);
+                    };
                     setSelectedParent(opt);
-                    setSelectedChild(opt.children?.[0] || opt);
+                    setSelectedChild(getDeepestFirstChild(opt));
                   }}
                   style={{
                     padding: "6px 12px",
@@ -221,17 +245,20 @@ const parsedHomeLocations = homeLocs ? JSON.parse(homeLocs) : [];
               {selectedParent.children.map((child) => (
                 <button
                   key={child.id}
-                  onClick={() => onLeafSelect?.(child)}
+                  onClick={() => {
+                    setSelectedChild(child);
+                    onLeafSelect?.(child);
+                  }}
                   style={{
                     padding: "6px 12px",
                     borderRadius: 999,
                     border:
-                      selectedLeaf?.id === child.id
+                      selectedChild?.id === child.id
                         ? "2px solid #2563eb"
                         : "1px solid #d1d5db",
                     background:
-                      selectedLeaf?.id === child.id ? "#2563eb" : "#f9fafb",
-                    color: selectedLeaf?.id === child.id ? "#fff" : "#111827",
+                      selectedChild?.id === child.id ? "#2563eb" : "#f9fafb",
+                    color: selectedChild?.id === child.id ? "#fff" : "#111827",
                     cursor: "pointer",
                     fontSize: 13,
                   }}
