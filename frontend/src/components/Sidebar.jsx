@@ -38,6 +38,9 @@ function Sidebar() {
       <NavLink to="/categories" end style={linkStyle}>
         📂 Categories
       </NavLink>
+      <NavLink to="/dummy-categories" end style={linkStyle}>
+        🧪 Dummy Categories
+      </NavLink>
       <NavLink to="/questions" style={linkStyle}>
         ❓ Questions
       </NavLink>
