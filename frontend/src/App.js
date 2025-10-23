@@ -9,6 +9,7 @@ import Master from "./pages/Master";
 import MasterDetail from "./pages/MasterDetail";
 import Questions from "./pages/Questions";
 import CategoryPage from "./components/CategoryPage";
+import DummyCategoryPage from "./components/DummyCategoryPage";
 import CustomersPage from "./pages/CustomersPage";
 
 // Vendor Pages (Step 1 → Step 2 → Step 3)
@@ -46,6 +47,10 @@ function App() {
             {/* Categories */}
             <Route path="/categories" element={<CategoryPage />} />
             <Route path="/categories/:parentId" element={<CategoryPage />} />
+
+            {/* Dummy Categories */}
+            <Route path="/dummy-categories" element={<DummyCategoryPage />} />
+            <Route path="/dummy-categories/:parentId" element={<DummyCategoryPage />} />
 
             {/* Customers */}
             <Route path="/customers" element={<CustomersPage />} />

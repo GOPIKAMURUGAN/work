@@ -6,6 +6,7 @@ const fs = require('fs');
 const connectDB = require('./config/db');
 const mongoose = require('mongoose');
 const categoryRoutes = require('./routes/categoryRoutes');
+const dummyCategoryRoutes = require('./routes/dummyCategoryRoutes');
 const vendorRoutes = require('./routes/vendorRoutes');
 const masterRoutes = require('./routes/masterRoutes');
 
@@ -35,6 +36,7 @@ app.use('/uploads', express.static(uploadsDir));
 // Routes
 app.get('/', (req, res) => res.json({ ok: true }));
 app.use('/api/categories', categoryRoutes);
+app.use('/api/dummy-categories', dummyCategoryRoutes);
 app.use('/api/vendors', vendorRoutes);
 app.use('/api/masters', masterRoutes);
 
